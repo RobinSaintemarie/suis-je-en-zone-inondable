@@ -127,7 +127,7 @@
                 coucheInondation = L.geoJSON(data, {
                     style: { color: 'red', fillColor: '#ff3333', fillOpacity: 0.3, weight: 1 }
                 }).addTo(map);
-                document.getElementById('resultat').innerHTML = "<span style='color:blue;'>Prêt : Entrez une adresse.</span>";
+                document.getElementById('resultat').innerHTML = "<span style='color: #000000;'>Entrez votre adresse</span>";
             })
             .catch(err => {
                 document.getElementById('resultat').innerHTML = "<span style='color:orange;'>❌ Erreur : Le fichier 'zones.json' n'a pas pu être chargé.</span>";
@@ -195,9 +195,18 @@
 
                     var divResultat = document.getElementById('resultat');
                     if(estInonde) {
-                        divResultat.innerHTML = "<span style='color:red;'>⚠️ ATTENTION : En zone inondable !</span>";
+                        divResultat.innerHTML = `
+                            <div style="color:#c53030; margin-bottom: 10px;">⚠️ ATTENTION : Ce terrain est situé en zone inondable.</div>
+                            <div style="font-size: 12px; color: #4a5568; font-weight: normal; text-align: left; line-height: 1.4; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 10px;">
+                                <strong>Protégez votre habitat avec le DIAG'SMAGE !</strong><br>
+                                Le SMAGE des 2 Morin vous accompagne gratuitement pour réaliser un diagnostic de vulnérabilité de votre logement et vous proposer des solutions adaptées face au risque inondation.
+                            </div>
+                            <a href="https://www.smage2morin.fr/formulaire-diag-vulnerabilite/" target="_blank" style="display: block; margin-top: 12px; padding: 8px; background: #e53e3e; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; text-align: center; font-weight: bold;">
+                                M'inscrire au diagnostic gratuit
+                            </a>
+                        `;
                     } else {
-                        divResultat.innerHTML = "<span style='color:green;'>✅ RAS : Hors de la zone détectée.</span>";
+                        divResultat.innerHTML = "<span style='color:#2f855a;'>✅ RAS : Hors de la zone détectée.</span>";
                     }
                 } else {
                     document.getElementById('resultat').innerHTML = "Adresse introuvable.";
