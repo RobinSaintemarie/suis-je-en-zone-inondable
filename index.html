@@ -1,1 +1,100 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mon Simulateur Inondation</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        #wrapper { position: absolute; top: 10px; left: 50px; z-index: 1000; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        #map { height: 100vh; width: 100vw; }
+        input { width: 250px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+        button { padding: 8px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        #resultat { margin-top: 10px; font-weight: bold; }
+    </style>
+</head>
+<body>
 
+    <div id="wrapper">
+        <h2>Vérifier mon adresse</h2>
+        <input type="text" id="adresseInput" placeholder="Ex: 10 rue de la Paix, Paris">
+        <button onclick="rechercherAdresse()">Vérifier</button>
+        <div id="resultat">Entrez une adresse pour tester.</div>
+    </div>
+    
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
+
+    <script>
+        // 1. Créer la carte centrée sur la France
+        var map = L.map('map').setView([46.6033, 1.8883], 6);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        var zoneInondableGeoJSON;
+
+        // 2. CORRECTION ICI : Chargement de votre fichier zones.json
+        fetch('./zones.json')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Impossible de lire le fichier zones.json. Vérifiez qu'il est bien dans le dossier.");
+                }
+                return response.json();
+            })
+            .then(data => {
+                zoneInondableGeoJSON = data;
+                // On l'affiche en bleu transparent sur la carte
+                L.geoJSON(zoneInondableGeoJSON, {
+                    style: { color: 'blue', fillColor: '#3388ff', fillOpacity: 0.3, weight: 1 }
+                }).addTo(map);
+                console.log("Données inondations chargées avec succès !");
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('resultat').innerHTML = "<span style='color:orange;'>❌ Erreur : Le fichier 'zones.json' est introuvable ou mal nommé dans votre dossier Netlify.</span>";
+            });
+
+        // 3. Fonction de recherche d'adresse
+        function rechercherAdresse() {
+            var input = document.getElementById('adresseInput').value;
+            if(!input) return;
+
+            // Appel à l'API Adresse officielle du gouvernement
+            fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(input)}&limit=1`)
+            .then(response => response.json())
+            .then(data => {
+                if(data.features.length > 0) {
+                    var coords = data.features[0].geometry.coordinates; // [Longitude, Latitude]
+                    var latLng = [coords[1], coords[0]];
+
+                    // Zoomer sur l'adresse et mettre un marqueur
+                    map.setView(latLng, 16);
+                    L.marker(latLng).addTo(map).bindPopup(input).openPopup();
+
+                    // Calcul spatial avec Turf.js : est-ce que le point est dans le polygone ?
+                    var point = turf.point(coords);
+                    var estInonde = false;
+
+                    if (zoneInondableGeoJSON) {
+                        estInonde = turf.booleanPointInPolygon(point, zoneInondableGeoJSON);
+                    }
+
+                    // Affichage du verdict
+                    var divResultat = document.getElementById('resultat');
+                    if(estInonde) {
+                        divResultat.innerHTML = "<span style='color:red;'>⚠️ ATTENTION : Ce terrain est situé en zone inondable.</span>";
+                    } else {
+                        divResultat.innerHTML = "<span style='color:green;'>✅ RAS : Ce terrain est hors de la zone détectée.</span>";
+                    }
+                } else {
+                    alert("Adresse introuvable, précisez la ville.");
+                }
+            })
+            .catch(err => alert("Erreur lors de la recherche de l'adresse."));
+        }
+    </script>
+</body>
+</html>
