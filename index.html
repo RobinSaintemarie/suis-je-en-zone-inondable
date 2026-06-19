@@ -19,7 +19,7 @@
         <h2>Vérifier mon adresse</h2>
         <input type="text" id="adresseInput" placeholder="Ex: 10 rue de la Paix, Paris">
         <button onclick="rechercherAdresse()">Vérifier</button>
-        <div id="resultat">Entrez une adresse pour tester.</div>
+        <div id="resultat">Chargement des données cartographiques...</div>
     </div>
     
     <div id="map"></div>
@@ -28,72 +28,73 @@
     <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
 
     <script>
-        // 1. Créer la carte centrée sur la France
         var map = L.map('map').setView([46.6033, 1.8883], 6);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        var zoneInondableGeoJSON;
+        var zoneInondableGeoJSON = null;
 
-        // 2. CORRECTION ICI : Chargement de votre fichier zones.json
+        // Chargement du fichier sans le "./" (Spécifique GitHub)
         fetch('zones.json')
             .then(response => {
                 if (!response.ok) {
-                    throw new Error("Impossible de lire le fichier zones.json. Vérifiez qu'il est bien dans le dossier.");
+                    throw new Error("Fichier introuvable");
                 }
                 return response.json();
             })
             .then(data => {
                 zoneInondableGeoJSON = data;
-                // On l'affiche en bleu transparent sur la carte
                 L.geoJSON(zoneInondableGeoJSON, {
-                    style: { color: 'blue', fillColor: '#3388ff', fillOpacity: 0.3, weight: 1 }
+                    style: { color: 'red', fillColor: '#ff3333', fillOpacity: 0.3, weight: 1 }
                 }).addTo(map);
-                console.log("Données inondations chargées avec succès !");
+                document.getElementById('resultat').innerHTML = "<span style='color:blue;'>Prêt : Entrez une adresse.</span>";
             })
             .catch(err => {
-                console.error(err);
-                document.getElementById('resultat').innerHTML = "<span style='color:orange;'>❌ Erreur : Le fichier 'zones.json' est introuvable ou mal nommé dans votre dossier Netlify.</span>";
+                document.getElementById('resultat').innerHTML = "<span style='color:orange;'>❌ Erreur : Le fichier 'zones.json' n'a pas pu être chargé par GitHub. Vérifiez son nom.</span>";
             });
 
-        // 3. Fonction de recherche d'adresse
         function rechercherAdresse() {
             var input = document.getElementById('adresseInput').value;
             if(!input) return;
 
-            // Appel à l'API Adresse officielle du gouvernement
+            document.getElementById('resultat').innerHTML = "Recherche en cours...";
+
             fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(input)}&limit=1`)
             .then(response => response.json())
             .then(data => {
-                if(data.features.length > 0) {
+                if(data.features && data.features.length > 0) {
                     var coords = data.features[0].geometry.coordinates; // [Longitude, Latitude]
                     var latLng = [coords[1], coords[0]];
 
-                    // Zoomer sur l'adresse et mettre un marqueur
                     map.setView(latLng, 16);
                     L.marker(latLng).addTo(map).bindPopup(input).openPopup();
 
-                    // Calcul spatial avec Turf.js : est-ce que le point est dans le polygone ?
+                    // Vérification avec Turf.js
                     var point = turf.point(coords);
                     var estInonde = false;
 
                     if (zoneInondableGeoJSON) {
-                        estInonde = turf.booleanPointInPolygon(point, zoneInondableGeoJSON);
+                        try {
+                            estInonde = turf.booleanPointInPolygon(point, zoneInondableGeoJSON);
+                        } catch(e) {
+                            console.error("Erreur de calcul spatial", e);
+                        }
                     }
 
-                    // Affichage du verdict
                     var divResultat = document.getElementById('resultat');
                     if(estInonde) {
-                        divResultat.innerHTML = "<span style='color:red;'>⚠️ ATTENTION : Ce terrain est situé en zone inondable.</span>";
+                        divResultat.innerHTML = "<span style='color:red;'>⚠️ ATTENTION : En zone inondable !</span>";
                     } else {
-                        divResultat.innerHTML = "<span style='color:green;'>✅ RAS : Ce terrain est hors de la zone détectée.</span>";
+                        divResultat.innerHTML = "<span style='color:green;'>✅ RAS : Hors de la zone détectée.</span>";
                     }
                 } else {
-                    alert("Adresse introuvable, précisez la ville.");
+                    document.getElementById('resultat').innerHTML = "Adresse introuvable.";
                 }
             })
-            .catch(err => alert("Erreur lors de la recherche de l'adresse."));
+            .catch(err => {
+                document.getElementById('resultat').innerHTML = "Erreur de connexion à l'API Adresse.";
+            });
         }
     </script>
 </body>
