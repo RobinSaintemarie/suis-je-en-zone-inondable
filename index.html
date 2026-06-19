@@ -25,7 +25,16 @@
         .logo-container { text-align: center; margin-bottom: 15px; }
         .logo-container img { max-width: 150px; height: auto; }
 
-        h2 { font-size: 18px; color: #2c3e50; margin: 0 0 15px 0; text-align: center; font-weight: 600; }
+        h2 { font-size: 18px; color: #2c3e50; margin: 0 0 5px 0; text-align: center; font-weight: 600; }
+        
+        /* Style pour le texte d'introduction sous le titre */
+        .intro-text { 
+            font-size: 13px; 
+            color: #4a5568; 
+            text-align: center; 
+            margin-bottom: 15px; 
+            line-height: 1.4;
+        }
 
         /* Conteneur de recherche */
         .search-container { position: relative; margin-bottom: 15px; }
@@ -78,6 +87,18 @@
             background: #f7fafc;
             border: 1px solid #edf2f7;
             font-weight: 600;
+            margin-bottom: 12px;
+        }
+
+        /* Style pour la mention légale informative tout en bas */
+        .legal-text {
+            font-size: 10px;
+            color: #718096;
+            text-align: center;
+            line-height: 1.3;
+            border-top: 1px dashed #e2e8f0;
+            padding-top: 8px;
+            margin-top: 5px;
         }
     </style>
 </head>
@@ -85,10 +106,14 @@
 
     <div id="wrapper">
         <div class="logo-container">
-            <img src="https://cdn-icons-png.flaticon.com/512/4005/4005743.png" alt="Logo">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWk87ZmVBbO60zUnQmOq8XpDaXenKQ0dhefw&s" alt="Logo">
         </div>
         
-        <h2>Simulateur Inondation</h2>
+        <h2>Êtes-vous en zone inondable ?</h2>
+        
+        <div class="intro-text">
+            Grâce à cet outil, localisez facilement votre terrain pour savoir s'il se situe dans une zone à risque d'inondation sur le territoire des 2 Morin.
+        </div>
         
         <div class="search-container">
             <input type="text" id="adresseInput" placeholder="Tapez votre adresse ici..." oninput="autoCompletion()" autocomplete="off">
@@ -96,6 +121,10 @@
         </div>
         
         <div id="resultat">Chargement de la carte...</div>
+
+        <div class="legal-text">
+            Outil informatif basé sur les données d'études disponibles. Ne remplace pas les documents réglementaires officiels (PPRi, Certificat d'urbanisme).
+        </div>
     </div>
     
     <div id="map"></div>
@@ -103,10 +132,8 @@
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
     <script>
-        // Centrage sur le SMAGE des 2 Morin
         var map = L.map('map').setView([48.815, 3.185], 10);
         
-        // Fond de carte satellite Esri
         L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
             attribution: 'Tiles &copy; Esri'
         }).addTo(map);
@@ -114,7 +141,6 @@
         var coucheInondation = null;
         var marqueurActuel = null;
 
-        // Chargement du fichier zones.json
         fetch('zones.json')
             .then(response => {
                 if (!response.ok) throw new Error("Fichier introuvable");
@@ -130,7 +156,6 @@
                 document.getElementById('resultat').innerHTML = "<span style='color:orange;'>❌ Erreur : Fichier cartographique introuvable.</span>";
             });
 
-        // Algorithme de calcul natif (Ray-casting)
         function pointDansPolygone(point, polygone) {
             var x = point[0], y = point[1];
             var inside = false;
@@ -162,7 +187,6 @@
             return false;
         }
 
-        // FONCTION AUTO-COMPLÉTION (Saisie prédictive)
         function autoCompletion() {
             var input = document.getElementById('adresseInput').value;
             var liste = document.getElementById('suggestions');
@@ -172,7 +196,6 @@
                 return;
             }
 
-            // Requête à l'API Adresse (limitée à 5 résultats pour la fluidité)
             fetch(`https://api-adresse.data.gouv.fr/search/?q=${encodeURIComponent(input)}&limit=5`)
             .then(response => response.json())
             .then(data => {
@@ -183,7 +206,6 @@
                         var li = document.createElement('li');
                         li.innerText = feature.properties.label;
                         
-                        // Quand on clique sur une suggestion de la liste
                         li.onclick = function() {
                             document.getElementById('adresseInput').value = feature.properties.label;
                             liste.style.display = "none";
@@ -198,29 +220,24 @@
             .catch(() => { liste.style.display = "none"; });
         }
 
-        // Fermer la liste si on clique en dehors de la barre de recherche
         document.addEventListener("click", function(e) {
             if (e.target.id !== "adresseInput") {
                 document.getElementById('suggestions').style.display = "none";
             }
         });
 
-        // FONCTION DIAGNOSTIC (Lancée automatiquement après le choix de l'adresse)
         function executerDiagnostic(feature) {
             document.getElementById('resultat').innerHTML = "Analyse en cours...";
 
-            var coords = feature.geometry.coordinates; // [Longitude, Latitude]
+            var coords = feature.geometry.coordinates;
             var latLng = [coords[1], coords[0]];
             var label = feature.properties.label;
 
-            // Nettoyage de l'ancien marqueur s'il y en a un
             if (marqueurActuel) { map.removeLayer(marqueurActuel); }
 
-            // Positionnement de la carte et du marqueur
             map.setView(latLng, 17);
             marqueurActuel = L.marker(latLng).addTo(map).bindPopup(label).openPopup();
 
-            // Calcul spatial
             var estInonde = false;
             if (coucheInondation) {
                 var rawData = coucheInondation.toGeoJSON();
