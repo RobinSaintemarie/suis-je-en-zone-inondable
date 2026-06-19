@@ -37,7 +37,7 @@
         var zoneInondableGeoJSON;
 
         // 2. CORRECTION ICI : Chargement de votre fichier zones.json
-        fetch('./zones.json')
+        fetch('zones.json')
             .then(response => {
                 if (!response.ok) {
                     throw new Error("Impossible de lire le fichier zones.json. Vérifiez qu'il est bien dans le dossier.");
