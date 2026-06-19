@@ -196,20 +196,21 @@
                     var divResultat = document.getElementById('resultat');
                     if(estInonde) {
                         divResultat.innerHTML = `
-                            <div style="color:#c53030; margin-bottom: 10px;">⚠️ ATTENTION : Ce terrain est situé en zone inondable.</div>
+                            <div style="color:#c53030; margin-bottom: 10px; font-weight: bold;">⚠️ ATTENTION : Terrain situé en zone de débordement de cours d'eau</div>
                             <div style="font-size: 12px; color: #4a5568; font-weight: normal; text-align: left; line-height: 1.4; border-top: 1px solid #e2e8f0; padding-top: 10px; margin-top: 10px;">
-                                <strong>Protégez votre habitat avec le DIAG'SMAGE !</strong><br>
-                                Le SMAGE des 2 Morin vous accompagne gratuitement pour réaliser un diagnostic de vulnérabilité de votre logement et vous proposer des solutions adaptées face au risque inondation.
+                                <strong>Protégez votre habitat avec DIAG'SMAGE !</strong><br>
+                                Les études indiquent que ce terrain est exposé aux crues. Le SMAGE des 2 Morin vous accompagne gratuitement pour réaliser un diagnostic de vulnérabilité de votre logement et vous proposer des solutions adaptées face au risque inondation.
                             </div>
                             <a href="https://www.smage2morin.fr/formulaire-diag-vulnerabilite/" target="_blank" style="display: block; margin-top: 12px; padding: 8px; background: #e53e3e; color: white; text-decoration: none; border-radius: 6px; font-size: 13px; text-align: center; font-weight: bold;">
                                 M'inscrire au diagnostic gratuit
                             </a>
                         `;
+                    }
                     } else {
                         divResultat.innerHTML = `
                             <div style="color:#2f855a; margin-bottom: 8px;">✅ Hors zone de débordement détectée</div>
                             <div style="font-size: 11px; color: #4a5568; font-weight: normal; text-align: left; line-height: 1.4; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px;">
-                                <em>Note :</em> Ce résultat se base uniquement sur les études de <strong>débordement de cours d'eau</strong>. Ce terrain peut tout de même être concerné par d'autres phénomènes non cartographiés ici, comme le <strong>ruissellement superficiel</strong> ou les <strong>remontées de nappes phréatiques</strong>.
+                                <em>Note :</em> Ce résultat se base uniquement sur les études de <strong>débordement de cours d'eau</strong>. Ce terrain peut tout de même être concerné par d'autres phénomènes non cartographiés ici, comme le <strong>ruissellement</strong> ou les <strong>remontées de nappes phréatiques</strong>.
                             </div>
                         `;
                     }
