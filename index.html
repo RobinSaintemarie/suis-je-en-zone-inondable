@@ -25,7 +25,6 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/@mapbox/leaflet-pip@1.1.0/leaflet-pip.min.js"></script>
 
     <script>
         var map = L.map('map').setView([46.6033, 1.8883], 6);
@@ -51,6 +50,42 @@
                 document.getElementById('resultat').innerHTML = "<span style='color:orange;'>❌ Erreur : Le fichier 'zones.json' n'a pas pu être chargé.</span>";
             });
 
+        // Fonction géométrique universelle (Ray-casting natif en JavaScript)
+        function pointDansPolygone(point, polygone) {
+            var x = point[0], y = point[1];
+            var inside = false;
+            for (var i = 0, j = polygone.length - 1; i < polygone.length; j = i++) {
+                var xi = polygone[i][0], yi = polygone[i][1];
+                var xj = polygone[j][0], yj = polygone[j][1];
+                var intersect = ((yi > y) != (yj > y)) && (x < (xj - xi) * (y - yi) / (yj - yi) + xi);
+                if (intersect) inside = !inside;
+            }
+            return inside;
+        }
+
+        function analyserGeoJSON(coords, geojson) {
+            if (!geojson || !geojson.features) return false;
+            
+            // On parcourt chaque polygone du fichier un par un
+            for (var f = 0; f < geojson.features.length; f++) {
+                var feature = geojson.features[f];
+                if (!feature.geometry) continue;
+                
+                var type = feature.geometry.type;
+                var coordinates = feature.geometry.coordinates;
+
+                if (type === "Polygon") {
+                    // Premier anneau = le contour extérieur du polygone
+                    if (pointDansPolygone(coords, coordinates[0])) return true;
+                } else if (type === "MultiPolygon") {
+                    for (var p = 0; p < coordinates.length; p++) {
+                        if (pointDansPolygone(coords, coordinates[p][0])) return true;
+                    }
+                }
+            }
+            return false;
+        }
+
         function rechercherAdresse() {
             var input = document.getElementById('adresseInput').value;
             if(!input) return;
@@ -62,23 +97,21 @@
             .then(data => {
                 if(data.features && data.features.length > 0) {
                     var coords = data.features[0].geometry.coordinates; // [Longitude, Latitude]
-                    var latLng = [coords[1], coords[0]]; // [Latitude, Longitude] pour Leaflet
+                    var latLng = [coords[1], coords[0]]; // [Latitude, Longitude]
 
-                    // Placer le marqueur au pixel près
+                    // Placer le marqueur
                     map.setView(latLng, 16);
                     L.marker(latLng).addTo(map).bindPopup(input).openPopup();
 
-                    // CALCUL DE PRÉCISION ABSOLUE : point-in-polygon strict
-                    var resultatsIntersection = [];
+                    // Lancement de notre propre moteur de calcul (indépendant des bibliothèques web)
+                    var estInonde = false;
                     if (coucheInondation) {
-                        // leafletPip.pointInLayer teste mathématiquement le contour exact des polygones rouges
-                        resultatsIntersection = leafletPip.pointInLayer(latLng, coucheInondation);
+                        var rawData = coucheInondation.toGeoJSON();
+                        estInonde = analyserGeoJSON(coords, rawData);
                     }
 
                     var divResultat = document.getElementById('resultat');
-                    
-                    // Si le tableau contient au moins un élément, le point est VRAIMENT dans la zone rouge
-                    if(resultatsIntersection.length > 0) {
+                    if(estInonde) {
                         divResultat.innerHTML = "<span style='color:red;'>⚠️ ATTENTION : En zone inondable !</span>";
                     } else {
                         divResultat.innerHTML = "<span style='color:green;'>✅ RAS : Hors de la zone détectée.</span>";
