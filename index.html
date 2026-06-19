@@ -2,23 +2,106 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Mon Simulateur Inondation</title>
+    <title>Simulateur Inondation - Les 2 Morin</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <style>
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
-        #wrapper { position: absolute; top: 10px; left: 50px; z-index: 1000; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.2); }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; }
         #map { height: 100vh; width: 100vw; }
-        input { width: 250px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        button { padding: 8px 12px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        #resultat { margin-top: 10px; font-weight: bold; }
+        
+        /* Relooking complet du panneau blanc */
+        #wrapper { 
+            position: absolute; 
+            top: 20px; 
+            left: 20px; 
+            z-index: 1000; 
+            background: rgba(255, 255, 255, 0.95); 
+            padding: 20px; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3); 
+            width: 320px;
+            box-sizing: border-box;
+            backdrop-filter: blur(5px); /* Effet de flou moderne à l'arrière du panneau */
+        }
+
+        /* Style du Logo */
+        .logo-container {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .logo-container img {
+            max-width: 150px; /* Ajuste la largeur max du logo */
+            height: auto;
+        }
+
+        h2 { 
+            font-size: 18px; 
+            color: #2c3e50; 
+            margin: 0 0 15px 0; 
+            text-align: center;
+            font-weight: 600;
+        }
+
+        /* Style de la barre de recherche */
+        .search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        input { 
+            flex: 1;
+            padding: 10px 12px; 
+            border: 2px solid #e2e8f0; 
+            border-radius: 8px; 
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+        input:focus {
+            border-color: #3182ce; /* Bordure bleue quand on clique dedans */
+        }
+
+        /* Style du bouton */
+        button { 
+            padding: 10px 16px; 
+            background: #3182ce; 
+            color: white; 
+            border: none; 
+            border-radius: 8px; 
+            font-size: 14px;
+            font-weight: bold;
+            cursor: pointer; 
+            transition: background 0.2s;
+        }
+        button:hover {
+            background: #2b6cb0; /* Bleu plus foncé au survol */
+        }
+
+        /* Style de la zone de résultat */
+        #resultat { 
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 14px;
+            text-align: center;
+            background: #f7fafc;
+            border: 1px solid #edf2f7;
+            font-weight: 600;
+        }
     </style>
 </head>
 <body>
 
     <div id="wrapper">
-        <h2>Vérifier mon adresse</h2>
-        <input type="text" id="adresseInput" placeholder="Ex: 10 rue de la Paix, Paris">
-        <button onclick="rechercherAdresse()">Vérifier</button>
+        <div class="logo-container">
+            <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcTWk87ZmVBbO60zUnQmOq8XpDaXenKQ0dhefw&s" alt="Logo">
+        </div>
+        
+        <h2>Simulateur Inondation</h2>
+        
+        <div class="search-box">
+            <input type="text" id="adresseInput" placeholder="Ex: 10 rue de la Paix, Coulommiers">
+            <button onclick="rechercherAdresse()">Tester</button>
+        </div>
+        
         <div id="resultat">Chargement de la carte...</div>
     </div>
     
