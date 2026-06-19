@@ -19,39 +19,35 @@
         <h2>Vérifier mon adresse</h2>
         <input type="text" id="adresseInput" placeholder="Ex: 10 rue de la Paix, Paris">
         <button onclick="rechercherAdresse()">Vérifier</button>
-        <div id="resultat">Chargement des données cartographiques...</div>
+        <div id="resultat">Chargement de la carte...</div>
     </div>
     
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script>
-
     <script>
         var map = L.map('map').setView([46.6033, 1.8883], 6);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
 
-        var zoneInondableGeoJSON = null;
+        var coucheInondation = null;
 
-        // Chargement du fichier sans le "./" (Spécifique GitHub)
+        // Chargement du fichier zones.json
         fetch('zones.json')
             .then(response => {
-                if (!response.ok) {
-                    throw new Error("Fichier introuvable");
-                }
+                if (!response.ok) throw new Error("Fichier introuvable");
                 return response.json();
             })
             .then(data => {
-                zoneInondableGeoJSON = data;
-                L.geoJSON(zoneInondableGeoJSON, {
+                // On stocke les polygones directement dans une couche Leaflet
+                coucheInondation = L.geoJSON(data, {
                     style: { color: 'red', fillColor: '#ff3333', fillOpacity: 0.3, weight: 1 }
                 }).addTo(map);
                 document.getElementById('resultat').innerHTML = "<span style='color:blue;'>Prêt : Entrez une adresse.</span>";
             })
             .catch(err => {
-                document.getElementById('resultat').innerHTML = "<span style='color:orange;'>❌ Erreur : Le fichier 'zones.json' n'a pas pu être chargé par GitHub. Vérifiez son nom.</span>";
+                document.getElementById('resultat').innerHTML = "<span style='color:orange;'>❌ Erreur : Le fichier 'zones.json' n'a pas pu être chargé.</span>";
             });
 
         function rechercherAdresse() {
@@ -65,21 +61,30 @@
             .then(data => {
                 if(data.features && data.features.length > 0) {
                     var coords = data.features[0].geometry.coordinates; // [Longitude, Latitude]
-                    var latLng = [coords[1], coords[0]];
+                    var latLng = [coords[1], coords[0]]; // Inversion pour Leaflet [Lat, Lng]
 
+                    // Placer le marqueur
                     map.setView(latLng, 16);
-                    L.marker(latLng).addTo(map).bindPopup(input).openPopup();
+                    var marqueur = L.marker(latLng).addTo(map).bindPopup(input).openPopup();
 
-                    // Vérification avec Turf.js
-                    var point = turf.point(coords);
+                    // Calcul de superposition "natif" avec Leaflet (ultra tolérant)
                     var estInonde = false;
-
-                    if (zoneInondableGeoJSON) {
-                        try {
-                            estInonde = turf.booleanPointInPolygon(point, zoneInondableGeoJSON);
-                        } catch(e) {
-                            console.error("Erreur de calcul spatial", e);
-                        }
+                    
+                    if (coucheInondation) {
+                        coucheInondation.eachLayer(function(layer) {
+                            // On utilise la fonction de Leaflet pour voir si le polygone contient le point
+                            if (layer.getBounds().contains(latLng)) {
+                                // Double vérification si c'est un polygone précis
+                                if (typeof layer.containsPoint === 'function') {
+                                    if (layer.containsPoint(map.latLngToLayerPoint(latLng))) {
+                                        estInonde = true;
+                                    }
+                                } else {
+                                    // Fallback si la structure est complexe : on valide via la zone globale (Bounds)
+                                    estInonde = true; 
+                                }
+                            }
+                        });
                     }
 
                     var divResultat = document.getElementById('resultat');
@@ -93,7 +98,7 @@
                 }
             })
             .catch(err => {
-                document.getElementById('resultat').innerHTML = "Erreur de connexion à l'API Adresse.";
+                document.getElementById('resultat').innerHTML = "<span style='color:red;'>Erreur technique de géolocalisation.</span>";
             });
         }
     </script>
