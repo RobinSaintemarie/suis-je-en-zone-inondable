@@ -25,6 +25,8 @@
     <div id="map"></div>
 
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/@mapbox/leaflet-pip@1.1.0/leaflet-pip.min.js"></script>
+
     <script>
         var map = L.map('map').setView([46.6033, 1.8883], 6);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -40,7 +42,6 @@
                 return response.json();
             })
             .then(data => {
-                // On stocke les polygones directement dans une couche Leaflet
                 coucheInondation = L.geoJSON(data, {
                     style: { color: 'red', fillColor: '#ff3333', fillOpacity: 0.3, weight: 1 }
                 }).addTo(map);
@@ -61,34 +62,23 @@
             .then(data => {
                 if(data.features && data.features.length > 0) {
                     var coords = data.features[0].geometry.coordinates; // [Longitude, Latitude]
-                    var latLng = [coords[1], coords[0]]; // Inversion pour Leaflet [Lat, Lng]
+                    var latLng = [coords[1], coords[0]]; // [Latitude, Longitude] pour Leaflet
 
-                    // Placer le marqueur
+                    // Placer le marqueur au pixel près
                     map.setView(latLng, 16);
-                    var marqueur = L.marker(latLng).addTo(map).bindPopup(input).openPopup();
+                    L.marker(latLng).addTo(map).bindPopup(input).openPopup();
 
-                    // Calcul de superposition "natif" avec Leaflet (ultra tolérant)
-                    var estInonde = false;
-                    
+                    // CALCUL DE PRÉCISION ABSOLUE : point-in-polygon strict
+                    var resultatsIntersection = [];
                     if (coucheInondation) {
-                        coucheInondation.eachLayer(function(layer) {
-                            // On utilise la fonction de Leaflet pour voir si le polygone contient le point
-                            if (layer.getBounds().contains(latLng)) {
-                                // Double vérification si c'est un polygone précis
-                                if (typeof layer.containsPoint === 'function') {
-                                    if (layer.containsPoint(map.latLngToLayerPoint(latLng))) {
-                                        estInonde = true;
-                                    }
-                                } else {
-                                    // Fallback si la structure est complexe : on valide via la zone globale (Bounds)
-                                    estInonde = true; 
-                                }
-                            }
-                        });
+                        // leafletPip.pointInLayer teste mathématiquement le contour exact des polygones rouges
+                        resultatsIntersection = leafletPip.pointInLayer(latLng, coucheInondation);
                     }
 
                     var divResultat = document.getElementById('resultat');
-                    if(estInonde) {
+                    
+                    // Si le tableau contient au moins un élément, le point est VRAIMENT dans la zone rouge
+                    if(resultatsIntersection.length > 0) {
                         divResultat.innerHTML = "<span style='color:red;'>⚠️ ATTENTION : En zone inondable !</span>";
                     } else {
                         divResultat.innerHTML = "<span style='color:green;'>✅ RAS : Hors de la zone détectée.</span>";
