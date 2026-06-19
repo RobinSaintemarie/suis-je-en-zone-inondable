@@ -206,7 +206,12 @@
                             </a>
                         `;
                     } else {
-                        divResultat.innerHTML = "<span style='color:#2f855a;'>✅ RAS : Hors de la zone détectée.</span>";
+                        divResultat.innerHTML = `
+                            <div style="color:#2f855a; margin-bottom: 8px;">✅ Hors zone de débordement détectée</div>
+                            <div style="font-size: 11px; color: #4a5568; font-weight: normal; text-align: left; line-height: 1.4; border-top: 1px solid #e2e8f0; padding-top: 8px; margin-top: 8px;">
+                                <em>Note :</em> Ce résultat se base uniquement sur les études de <strong>débordement de cours d'eau</strong>. Ce terrain peut tout de même être concerné par d'autres phénomènes non cartographiés ici, comme le <strong>ruissellement superficiel</strong> ou les <strong>remontées de nappes phréatiques</strong>.
+                            </div>
+                        `;
                     }
                 } else {
                     document.getElementById('resultat').innerHTML = "Adresse introuvable.";
